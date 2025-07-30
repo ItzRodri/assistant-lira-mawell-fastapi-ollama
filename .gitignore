@@ -18,7 +18,6 @@ __pycache__/
 
 # Archivos de configuración local
 .env
-.env.example
 
 # Archivos de log
 *.log
