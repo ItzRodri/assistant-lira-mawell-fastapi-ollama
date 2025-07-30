@@ -1,7 +1,8 @@
+# app/api/chat.py
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
-from app.services import get_current_user, ask_mistral_with_context
-from app.models import User, Conversation, Message
+from app.models import Conversation, Message
 from app.schemas.chat import ChatRequest
 from app.schemas.message import MessageResponse
 from app.schemas.conversation import ConversationSummary, ConversationCreate, ConversationResponse
@@ -10,9 +11,6 @@ from app.config import SessionLocal
 import requests
 
 router = APIRouter(prefix="/chat", tags=["chat"])
-
-class QuestionRequest(BaseModel):
-    question: str
 
 # Dependency para DB
 def get_db():
@@ -23,15 +21,15 @@ def get_db():
         db.close()
 
 @router.post("/start", response_model=ConversationResponse)
-def start_conversation(data: ConversationCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    new_convo = Conversation(title=data.title, user_id=user.id)
+def start_conversation(data: ConversationCreate, db: Session = Depends(get_db)):
+    new_convo = Conversation(title=data.title)
     db.add(new_convo)
     db.commit()
     db.refresh(new_convo)
     return new_convo
 
 @router.post("/send", response_model=MessageResponse)
-def send_question(data: ChatRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def send_question(data: ChatRequest, db: Session = Depends(get_db)):
     # Recuperar historial para el modelo
     messages = db.query(Message).filter(Message.conversation_id == data.conversation_id).order_by(Message.timestamp).all()
 
@@ -53,7 +51,6 @@ def send_question(data: ChatRequest, db: Session = Depends(get_db), user: User =
     # Guardar el mensaje
     new_msg = Message(
         conversation_id=data.conversation_id,
-        user_id=user.id,
         question=data.question,
         answer=answer
     )
@@ -64,39 +61,21 @@ def send_question(data: ChatRequest, db: Session = Depends(get_db), user: User =
     return new_msg
 
 @router.get("/{conversation_id}/messages", response_model=list[MessageResponse])
-def get_conversation_messages(
-    conversation_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
+def get_conversation_messages(conversation_id: int, db: Session = Depends(get_db)):
     messages = db.query(Message).filter(
-        Message.conversation_id == conversation_id,
-        Message.user_id == user.id
+        Message.conversation_id == conversation_id
     ).order_by(Message.timestamp).all()
 
     return messages
 
 @router.get("/my-conversations", response_model=list[ConversationSummary])
-def list_user_conversations(
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
-    conversations = db.query(Conversation).filter(
-        Conversation.user_id == user.id
-    ).order_by(Conversation.created_at.desc()).all()
-
+def list_user_conversations(db: Session = Depends(get_db)):
+    conversations = db.query(Conversation).order_by(Conversation.created_at.desc()).all()
     return conversations
 
 @router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_conversation(
-    conversation_id: int,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user)
-):
-    conversation = db.query(Conversation).filter(
-        Conversation.id == conversation_id,
-        Conversation.user_id == user.id
-    ).first()
+def delete_conversation(conversation_id: int, db: Session = Depends(get_db)):
+    conversation = db.query(Conversation).filter(Conversation.id == conversation_id).first()
 
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")

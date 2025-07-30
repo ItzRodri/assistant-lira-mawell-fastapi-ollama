@@ -26,5 +26,4 @@ def read_root():
     return {"message": "API Mawell IA activa 🚀"}
 
 
-app.include_router(auth_router)
 app.include_router(chat_router)
