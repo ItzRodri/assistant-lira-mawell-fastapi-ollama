@@ -2,7 +2,7 @@
 venv/
 .venv/
 env/
-__pycache__/
+__pycache__/ 
 
 # Archivos de dependencias (solo se sube requirements.txt)
 *.pyc
