@@ -69,7 +69,7 @@ def get_conversation_messages(conversation_id: int, db: Session = Depends(get_db
     return messages
 
 @router.get("/my-conversations", response_model=list[ConversationSummary])
-def list_user_conversations(db: Session = Depends(get_db)):
+def list_conversations(db: Session = Depends(get_db)):
     conversations = db.query(Conversation).order_by(Conversation.created_at.desc()).all()
     return conversations
 

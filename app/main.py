@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import Base, engine
-from app.api import auth_router, chat_router
+from app.api import chat_router
 
 app = FastAPI(
     title="Asistente Virtual Mawell",
