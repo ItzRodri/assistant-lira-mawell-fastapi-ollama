@@ -20,8 +20,8 @@ git push origin main
 En el dashboard de Railway, ve a la pestaña **Variables** y añade:
 
 ```bash
-# Database (Railway proveerá automáticamente PostgreSQL)
-DATABASE_URL=postgresql://user:password@host:port/dbname
+# Database (SQLite - más simple y eficiente para este caso)
+DATABASE_URL=sqlite:///./mawell_assistant.db
 
 # Embedding Model
 EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
@@ -40,10 +40,11 @@ ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
-### 4. Añadir PostgreSQL
-1. En tu proyecto de Railway, haz clic en "New Service"
-2. Selecciona "Database" → "PostgreSQL"
-3. Railway automáticamente configurará `DATABASE_URL`
+### 4. ¡No necesitas base de datos externa!
+✅ **SQLite está incluido** - No necesitas añadir PostgreSQL
+✅ **Más rápido** - Sin latencia de red a BD externa
+✅ **Más barato** - Sin costos adicionales de base de datos
+✅ **Más simple** - Una sola configuración
 
 ### 5. Configurar el dominio
 1. Ve a la pestaña "Settings" de tu servicio
@@ -54,8 +55,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### Recursos y límites
 - **Railway Free Plan**: 500 horas/mes, $5 de crédito
-- **Ollama + Mistral**: Requiere ~2-4GB RAM
-- **Startup time**: ~2-3 minutos (descarga de Mistral)
+- **Versión ligera**: ~512MB RAM (sin Ollama local)
+- **Startup time**: ~30 segundos (versión optimizada)
+- **Ollama**: Usa API externa o modo fallback
 
 ### Base de datos vectorial
 Los archivos en `data/vector_db/` se incluyen en el despliegue para que la funcionalidad RAG funcione inmediatamente.
@@ -68,15 +70,15 @@ Los archivos en `data/vector_db/` se incluyen en el despliegue para que la funci
 ## 🔧 Troubleshooting
 
 ### Error: "Ollama not responding"
-- Espera 2-3 minutos para que Mistral se descargue
-- Verifica logs en Railway dashboard
+- La app funciona en modo fallback cuando Ollama no está disponible
+- Responde con "Mucho gusto estamos probando" + contexto
 
 ### Error: "Vector database not found"
 - Asegúrate que `data/vector_db/` esté en el repositorio
 - Ejecuta localmente: `python -m scripts.create_index`
 
 ### Error: "Database connection failed"
-- Verifica que PostgreSQL esté añadido al proyecto
+- Verifica que la ruta de SQLite sea correcta: `sqlite:///./mawell_assistant.db`
 - Confirma que `DATABASE_URL` esté configurada
 
 ## 📊 Endpoints disponibles
@@ -91,11 +93,13 @@ Los archivos en `data/vector_db/` se incluyen en el despliegue para que la funci
 
 ## 💡 Optimizaciones aplicadas
 
-1. **Startup optimizado**: Script `start.sh` maneja Ollama
-2. **Error handling**: Manejo robusto de errores de conexión
-3. **Database**: Soporte PostgreSQL + SQLite fallback
-4. **Timeouts**: Configurados para Railway
-5. **Health checks**: Endpoints de monitoreo
-6. **CORS**: Configurado para producción
+1. **Imagen ligera**: Alpine Linux + Python 3.11 (< 1GB vs 12GB)
+2. **Sin Ollama local**: Evita el límite de 4GB de Railway
+3. **Modo fallback**: Funciona aunque Ollama no esté disponible
+4. **Database**: SQLite optimizado para Railway
+5. **Startup rápido**: ~30 segundos vs 3 minutos
+6. **Health checks**: Endpoints de monitoreo
+7. **CORS**: Configurado para producción
+8. **Persistencia**: SQLite se mantiene entre deployments
 
 ¡Tu asistente virtual estará listo en unos minutos! 🎉

@@ -1,19 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting Mawell Assistant on Railway..."
-
-# Start Ollama in background
-echo "📦 Starting Ollama service..."
-ollama serve &
-OLLAMA_PID=$!
-
-# Wait for Ollama to be ready
-echo "⏳ Waiting for Ollama to be ready..."
-sleep 10
-
-# Pull Mistral model
-echo "🤖 Pulling Mistral model..."
-ollama pull mistral
+echo "🚀 Starting Mawell Assistant on Railway (Light Version)..."
 
 # Check if vector database exists
 if [ ! -f "data/vector_db/index.faiss" ] || [ ! -f "data/vector_db/docs.pkl" ]; then
@@ -26,6 +13,9 @@ if [ -f "mawell_assistant.db" ]; then
 else
     echo "📝 SQLite database will be created automatically"
 fi
+
+# Note: Ollama will be used via external API
+echo "🤖 Using external Ollama API for AI processing..."
 
 # Start FastAPI
 echo "🌐 Starting FastAPI server..."

@@ -1,1 +1,1 @@
-web: ./start.sh
+web: ./start-light.sh

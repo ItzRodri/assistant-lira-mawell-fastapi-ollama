@@ -11,8 +11,13 @@ load_dotenv()
 EMBEDDING_MODEL_NAME = os.getenv("EMBEDDING_MODEL_NAME", "all-MiniLM-L6-v2")
 INDEX_FILE = os.getenv("VECTOR_DB_INDEX", "data/vector_db/index.faiss")
 DOC_FILE = os.getenv("VECTOR_DB_DOCS", "data/vector_db/docs.pkl")
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
+
+# Use external Ollama service or fallback
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "https://api.ollama.ai/api/generate")  # External service
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "mistral")
+
+# Fallback mode when Ollama is not available
+FALLBACK_MODE = os.getenv("FALLBACK_MODE", "true").lower() == "true"
 
 # Initialize model with error handling
 try:

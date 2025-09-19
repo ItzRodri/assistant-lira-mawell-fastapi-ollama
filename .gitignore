@@ -9,8 +9,8 @@ __pycache__/
 __pycache__/
 *.pyo
 *.pyd
-*.db
-*.sqlite3
+# *.db  # Mantener SQLite para Railway
+# *.sqlite3  # Mantener SQLite para Railway
 
 # Archivos específicos de IDE (si usas VSCode, PyCharm, etc.)
 .vscode/

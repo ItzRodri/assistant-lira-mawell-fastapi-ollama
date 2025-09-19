@@ -9,7 +9,7 @@ sentence-transformers==2.2.2
 pymupdf==1.23.8
 faiss-cpu==1.7.4
 python-multipart==0.0.6
-psycopg2-binary==2.9.9
+# psycopg2-binary==2.9.9  # No necesario para SQLite
 python-dotenv==1.0.0
 requests==2.31.0
 pydantic==2.5.0
