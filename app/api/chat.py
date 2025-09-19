@@ -32,18 +32,11 @@ def send_question(data: ChatRequest, db: Session = Depends(get_db)):
     # Recuperar historial para el modelo
     messages = db.query(Message).filter(Message.conversation_id == data.conversation_id).order_by(Message.timestamp).all()
 
-    # Construir historial como prompt
-    history = ""
-    for msg in messages:
-        history += f"Usuario: {msg.question}\nAsistente: {msg.answer}\n"
-    history += f"Usuario: {data.question}\n"
-
     # Generar respuesta usando el servicio de IA optimizado
     from app.services.ia_service import ask_mistral_with_context
     
-    # Usar el servicio que maneja fallbacks
-    full_question = f"{history}Usuario: {data.question}"
-    ia_response = ask_mistral_with_context(full_question)
+    # Solo pasar la pregunta actual, no todo el historial
+    ia_response = ask_mistral_with_context(data.question)
     answer = ia_response.get("answer", "No se pudo generar respuesta.")
 
     # Guardar el mensaje

@@ -69,8 +69,23 @@ def get_relevant_chunks(query: str, top_k=4):
                 print(f"📚 Buscando en {len(docs)} fragmentos de documentos de Mawell...")
                 
                 # Búsqueda más inteligente por keywords relevantes
-                query_lower = query.lower()
+                query_lower = query.lower().strip()
                 query_words = [word for word in query_lower.split() if len(word) > 2]
+                
+                # Mapeo de sinónimos para mejorar búsqueda
+                synonyms = {
+                    'sistemas': ['sistemas', 'system', 'informática', 'computación'],
+                    'ingeniería': ['ingeniería', 'ingenieria', 'engineering', 'carrera'],
+                    'carreras': ['carreras', 'carrera', 'programa', 'especialidad'],
+                    'becas': ['becas', 'beca', 'descuento', 'ayuda']
+                }
+                
+                # Expandir palabras de búsqueda con sinónimos
+                expanded_words = set(query_words)
+                for word in query_words:
+                    for key, syns in synonyms.items():
+                        if word in syns:
+                            expanded_words.update(syns)
                 
                 relevant_docs = []
                 for doc in docs:
@@ -79,14 +94,18 @@ def get_relevant_chunks(query: str, top_k=4):
                     doc_lower = doc_text.lower()
                     score = 0
                     
-                    # Puntuar por coincidencias de palabras
-                    for word in query_words:
-                        if word in doc_lower:
-                            score += doc_lower.count(word)
-                    
-                    # Bonus por frases completas
+                    # Puntuar por coincidencias exactas de frases
                     if query_lower in doc_lower:
-                        score += 10
+                        score += 20
+                    
+                    # Puntuar por palabras individuales
+                    for word in expanded_words:
+                        count = doc_lower.count(word)
+                        score += count * 2
+                    
+                    # Bonus especial para títulos/encabezados
+                    if any(word in doc_text[:100] for word in expanded_words):
+                        score += 5
                     
                     if score > 0:
                         relevant_docs.append((doc_text, score))
