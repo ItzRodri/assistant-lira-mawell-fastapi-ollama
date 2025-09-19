@@ -8,7 +8,6 @@ from app.schemas.message import MessageResponse
 from app.schemas.conversation import ConversationSummary, ConversationCreate, ConversationResponse
 from sqlalchemy.orm import Session
 from app.config import SessionLocal
-import requests
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -39,14 +38,13 @@ def send_question(data: ChatRequest, db: Session = Depends(get_db)):
         history += f"Usuario: {msg.question}\nAsistente: {msg.answer}\n"
     history += f"Usuario: {data.question}\n"
 
-    # Generar respuesta usando IA (con historial)
-    full_prompt = f"Responde en español usando este historial:\n\n{history}"
-    response = requests.post("http://localhost:11434/api/generate", json={
-        "model": "mistral",
-        "prompt": full_prompt,
-        "stream": False
-    })
-    answer = response.json().get("response", "No se pudo generar respuesta.")
+    # Generar respuesta usando el servicio de IA optimizado
+    from app.services.ia_service import ask_mistral_with_context
+    
+    # Usar el servicio que maneja fallbacks
+    full_question = f"{history}Usuario: {data.question}"
+    ia_response = ask_mistral_with_context(full_question)
+    answer = ia_response.get("answer", "No se pudo generar respuesta.")
 
     # Guardar el mensaje
     new_msg = Message(
