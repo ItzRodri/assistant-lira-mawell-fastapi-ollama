@@ -1,14 +1,11 @@
-# Ultra-minimal Dockerfile for Railway
+# Super minimal Dockerfile for Railway - NO ML dependencies
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install minimal runtime dependencies
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Copy and install requirements
-COPY requirements-light.txt .
-RUN pip install --no-cache-dir -r requirements-light.txt
+# Copy and install minimal requirements (NO sentence-transformers, NO faiss)
+COPY requirements-minimal.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only essential files
 COPY app/ ./app/

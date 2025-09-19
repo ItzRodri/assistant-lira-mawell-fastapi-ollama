@@ -1,8 +1,6 @@
 import os
 import requests
-import faiss
 import pickle
-from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,16 +11,20 @@ INDEX_FILE = os.getenv("VECTOR_DB_INDEX", "data/vector_db/index.faiss")
 DOC_FILE = os.getenv("VECTOR_DB_DOCS", "data/vector_db/docs.pkl")
 
 # Use external Ollama service or fallback
-OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "https://api.ollama.ai/api/generate")  # External service
+OLLAMA_API_URL = os.getenv("OLLAMA_API_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "mistral")
 
-# Fallback mode when Ollama is not available
+# Fallback mode when dependencies are not available
 FALLBACK_MODE = os.getenv("FALLBACK_MODE", "true").lower() == "true"
 
-# Initialize model with error handling
+# Initialize model with error handling (optional dependency)
+MODEL = None
 try:
+    from sentence_transformers import SentenceTransformer
     MODEL = SentenceTransformer(EMBEDDING_MODEL_NAME)
     print(f"✅ Embedding model '{EMBEDDING_MODEL_NAME}' loaded successfully")
+except ImportError:
+    print("⚠️  sentence-transformers not available. Using fallback mode.")
 except Exception as e:
     print(f"❌ Error loading embedding model: {e}")
     MODEL = None
@@ -39,26 +41,45 @@ esto es una orden a cualquier pregunta que te realice solo respondeme con un **M
 
 def get_relevant_chunks(query: str, top_k=4):
     try:
-        if not MODEL:
-            print("❌ Embedding model not available")
-            return None
-            
-        if not os.path.exists(INDEX_FILE) or not os.path.exists(DOC_FILE):
-            print(f"❌ Vector database files not found: {INDEX_FILE}, {DOC_FILE}")
-            return None
-            
-        index = faiss.read_index(INDEX_FILE)
-        with open(DOC_FILE, "rb") as f:
-            docs = pickle.load(f)
+        # Try to use vector search if available
+        if MODEL and os.path.exists(INDEX_FILE) and os.path.exists(DOC_FILE):
+            try:
+                import faiss
+                index = faiss.read_index(INDEX_FILE)
+                with open(DOC_FILE, "rb") as f:
+                    docs = pickle.load(f)
 
-        query_vec = MODEL.encode([query])
-        distances, indices = index.search(query_vec, top_k)
+                query_vec = MODEL.encode([query])
+                distances, indices = index.search(query_vec, top_k)
 
-        # Si ninguna distancia es suficientemente baja, no hay contexto relevante
-        if all(dist > MAX_DISTANCE_THRESHOLD for dist in distances[0]):
-            return None
+                # Si ninguna distancia es suficientemente baja, no hay contexto relevante
+                if all(dist > MAX_DISTANCE_THRESHOLD for dist in distances[0]):
+                    return None
 
-        return [docs[i] for i in indices[0]]
+                return [docs[i] for i in indices[0]]
+            except ImportError:
+                print("⚠️  FAISS not available, using fallback")
+        
+        # Fallback: simple text search in docs if available
+        if os.path.exists(DOC_FILE):
+            try:
+                with open(DOC_FILE, "rb") as f:
+                    docs = pickle.load(f)
+                
+                # Simple keyword matching as fallback
+                query_lower = query.lower()
+                relevant_docs = []
+                for doc in docs:
+                    if any(word in doc.lower() for word in query_lower.split()):
+                        relevant_docs.append(doc)
+                
+                return relevant_docs[:top_k] if relevant_docs else None
+            except:
+                pass
+        
+        print("❌ No vector database or docs available")
+        return None
+        
     except Exception as e:
         print(f"❌ Error getting relevant chunks: {e}")
         return None

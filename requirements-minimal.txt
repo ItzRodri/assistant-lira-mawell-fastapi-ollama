@@ -3,3 +3,6 @@ uvicorn
 sqlalchemy
 python-dotenv
 requests
+python-jose
+passlib
+python-multipart
