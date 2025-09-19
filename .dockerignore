@@ -1,0 +1,35 @@
+# Ignore unnecessary files to speed up build
+.git/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.mypy_cache/
+.DS_Store
+Thumbs.db
+
+# Development files
+.env
+*.log
+.vscode/
+.idea/
+
+# Documentation
+README.md
+Readme.md
+RAILWAY_DEPLOY.md
+*.md
+
+# Large files that aren't needed
+media/*
+.gitignore
+
+# Keep only essential files
+!app/
+!data/
+!requirements-light.txt
+!start-light.sh
+!mawell_assistant.db

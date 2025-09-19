@@ -1,14 +1,13 @@
 [phases.setup]
-nixPkgs = ["python39", "curl"]
+nixPkgs = ["python311", "curl"]
 
 [phases.install]
 cmds = [
-  "curl -fsSL https://ollama.com/install.sh | sh",
-  "pip install -r requirements.txt"
+  "pip install -r requirements-light.txt"
 ]
 
 [phases.build]
-cmds = ["chmod +x start.sh"]
+cmds = ["chmod +x start-light.sh"]
 
 [start]
-cmd = "./start.sh"
+cmd = "./start-light.sh"

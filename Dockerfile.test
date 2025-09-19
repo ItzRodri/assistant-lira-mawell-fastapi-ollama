@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements-minimal.txt .
+RUN pip install -r requirements-minimal.txt
+COPY app/ ./app/
+COPY start-light.sh ./
+ENV PYTHONPATH=/app
+RUN chmod +x start-light.sh
+CMD ["./start-light.sh"]
