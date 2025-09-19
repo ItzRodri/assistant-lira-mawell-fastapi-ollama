@@ -29,9 +29,12 @@ Thumbs.db
 # Archivos de medios
 media/*
 
-# Archivos de datos
-data/pdfs/*
-data/vector_db/*
+# Archivos de datos - MANTENER PARA RAILWAY
+# data/pdfs/*
+# data/vector_db/*
 
 # Ignorar archivos generados por FAISS, si existen
-*.faiss
+# *.faiss
+
+# Railway specific
+.railway/

@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import Base, engine
@@ -23,7 +24,15 @@ Base.metadata.create_all(bind=engine)
 
 @app.get("/")
 def read_root():
-    return {"message": "API Mawell IA activa 🚀"}
+    return {
+        "message": "API Mawell IA activa 🚀",
+        "status": "healthy",
+        "environment": os.getenv("RAILWAY_ENVIRONMENT", "development")
+    }
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "service": "mawell-assistant"}
 
 
 app.include_router(chat_router)
