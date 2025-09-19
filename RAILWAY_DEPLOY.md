@@ -55,9 +55,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 ### Recursos y límites
 - **Railway Free Plan**: 500 horas/mes, $5 de crédito
-- **Versión ligera**: ~512MB RAM (sin Ollama local)
-- **Startup time**: ~30 segundos (versión optimizada)
+- **Versión ultra-ligera**: ~256MB RAM (mínimas dependencias)
+- **Startup time**: ~15 segundos (súper optimizada)
 - **Ollama**: Usa API externa o modo fallback
+- **PDFs**: Pre-procesados en la base de datos vectorial
 
 ### Base de datos vectorial
 Los archivos en `data/vector_db/` se incluyen en el despliegue para que la funcionalidad RAG funcione inmediatamente.
@@ -93,13 +94,14 @@ Los archivos en `data/vector_db/` se incluyen en el despliegue para que la funci
 
 ## 💡 Optimizaciones aplicadas
 
-1. **Imagen ligera**: Alpine Linux + Python 3.11 (< 1GB vs 12GB)
+1. **Imagen ultra-ligera**: Python 3.11-slim (< 500MB vs 12GB)
 2. **Sin Ollama local**: Evita el límite de 4GB de Railway
-3. **Modo fallback**: Funciona aunque Ollama no esté disponible
-4. **Database**: SQLite optimizado para Railway
-5. **Startup rápido**: ~30 segundos vs 3 minutos
-6. **Health checks**: Endpoints de monitoreo
-7. **CORS**: Configurado para producción
-8. **Persistencia**: SQLite se mantiene entre deployments
+3. **Sin PyMuPDF**: Evita errores de compilación (PDFs pre-procesados)
+4. **Dependencias mínimas**: Solo las esenciales para funcionamiento
+5. **Database**: SQLite optimizado para Railway
+6. **Startup súper rápido**: ~15 segundos vs 3 minutos
+7. **Health checks**: Endpoints de monitoreo
+8. **CORS**: Configurado para producción
+9. **Persistencia**: SQLite se mantiene entre deployments
 
 ¡Tu asistente virtual estará listo en unos minutos! 🎉

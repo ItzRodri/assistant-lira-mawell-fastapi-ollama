@@ -1,7 +1,6 @@
 # /services/embedding_service.py
 
 import os
-import fitz  # PyMuPDF
 from sentence_transformers import SentenceTransformer
 import faiss
 import pickle
@@ -10,13 +9,23 @@ MODEL = SentenceTransformer("distiluse-base-multilingual-cased-v1")  # Español 
 INDEX_FILE = "data/vector_db/index.faiss"
 DOC_FILE = "data/vector_db/docs.pkl"
 
-# Función para extraer el texto del PDF
+# Función para extraer el texto del PDF (fallback sin PyMuPDF)
 def extract_text_from_pdf(pdf_path: str):
-    text = ""
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            text += page.get_text()
-    return text
+    """
+    Extrae texto de PDF. En la versión ligera, los PDFs ya están procesados
+    y guardados en la base de datos vectorial.
+    """
+    try:
+        # Try to import PyMuPDF if available
+        import fitz
+        text = ""
+        with fitz.open(pdf_path) as doc:
+            for page in doc:
+                text += page.get_text()
+        return text
+    except ImportError:
+        print("⚠️  PyMuPDF no disponible. Los PDFs deben estar pre-procesados.")
+        return ""
 
 # Función para dividir el texto en fragmentos (chunks)
 def chunk_text(text: str, max_length=500):
