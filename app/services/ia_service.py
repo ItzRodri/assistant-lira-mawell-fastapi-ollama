@@ -60,21 +60,48 @@ def get_relevant_chunks(query: str, top_k=4):
             except ImportError:
                 print("⚠️  FAISS not available, using fallback")
         
-        # Fallback: simple text search in docs if available
+        # Fallback: búsqueda inteligente en docs de Mawell
         if os.path.exists(DOC_FILE):
             try:
                 with open(DOC_FILE, "rb") as f:
                     docs = pickle.load(f)
                 
-                # Simple keyword matching as fallback
+                print(f"📚 Buscando en {len(docs)} fragmentos de documentos de Mawell...")
+                
+                # Búsqueda más inteligente por keywords relevantes
                 query_lower = query.lower()
+                query_words = [word for word in query_lower.split() if len(word) > 2]
+                
                 relevant_docs = []
                 for doc in docs:
-                    if any(word in doc.lower() for word in query_lower.split()):
-                        relevant_docs.append(doc)
+                    # Manejar formato dict o string
+                    doc_text = doc.get('text', str(doc)) if isinstance(doc, dict) else str(doc)
+                    doc_lower = doc_text.lower()
+                    score = 0
+                    
+                    # Puntuar por coincidencias de palabras
+                    for word in query_words:
+                        if word in doc_lower:
+                            score += doc_lower.count(word)
+                    
+                    # Bonus por frases completas
+                    if query_lower in doc_lower:
+                        score += 10
+                    
+                    if score > 0:
+                        relevant_docs.append((doc_text, score))
                 
-                return relevant_docs[:top_k] if relevant_docs else None
-            except:
+                # Ordenar por relevancia y tomar los mejores
+                if relevant_docs:
+                    relevant_docs.sort(key=lambda x: x[1], reverse=True)
+                    best_docs = [doc for doc, score in relevant_docs[:top_k]]
+                    print(f"✅ Encontrados {len(best_docs)} fragmentos relevantes")
+                    return best_docs
+                
+                print("⚠️ No se encontraron fragmentos relevantes")
+                return None
+            except Exception as e:
+                print(f"❌ Error leyendo documentos: {e}")
                 pass
         
         print("❌ No vector database or docs available")
@@ -89,41 +116,49 @@ def ask_mistral_with_context(query: str) -> dict:
     chunks = get_relevant_chunks(query)
 
     if not chunks:
+        # Respuesta básica cuando no hay contexto específico
+        basic_response = (
+            "Hola, soy el asistente virtual de Mawell. "
+            "No encontré información específica sobre tu consulta en los documentos disponibles. "
+            "¿Podrías ser más específico sobre qué información de Mawell necesitas? "
+            "Tengo acceso a información sobre carreras, reglamentos académicos y becas."
+        )
         return {
             "question": query,
-            "answer": "Lo siento, no tengo información suficiente para responder eso con base en los documentos cargados."
+            "answer": basic_response
         }
 
+    # Si hay contexto, crear respuesta basada en los documentos
     context = "\n".join(chunks)
-    prompt = (
-        f"{INSTRUCTION}\n\n"
-        f"Contexto:\n{context}\n\n"
-        f"Pregunta: {query}\nRespuesta:"
-    )
-
+    
+    # Intentar usar Ollama, pero si no está disponible, usar fallback inteligente
     try:
         response = requests.post(
             OLLAMA_API_URL, 
             json={
                 "model": OLLAMA_MODEL_NAME,
-                "prompt": prompt,
+                "prompt": f"Responde como asistente de Mawell basándote en: {context}\nPregunta: {query}",
                 "stream": False
             },
-            timeout=30  # Add timeout for Railway
+            timeout=10  # Timeout corto para fallar rápido
         )
 
         if response.status_code == 200:
             answer = response.json().get("response", "").strip()
         else:
-            print(f"❌ Ollama API error: {response.status_code}")
-            answer = "No se pudo obtener una respuesta del modelo."
+            raise Exception(f"Ollama error: {response.status_code}")
             
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Request error to Ollama: {e}")
-        answer = "Error de conexión con el modelo de IA."
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        answer = "Error inesperado al procesar la consulta."
+        print(f"⚠️ Ollama no disponible, usando respuesta basada en contexto: {e}")
+        
+        # Fallback: respuesta inteligente basada en el contexto encontrado
+        context_preview = context[:500] + "..." if len(context) > 500 else context
+        answer = (
+            f"Basándome en la información de Mawell que encontré:\n\n"
+            f"{context_preview}\n\n"
+            f"Esta información debería ayudarte con tu consulta sobre: {query}. "
+            f"¿Necesitas más detalles específicos sobre algún punto?"
+        )
 
     return {
         "question": query,
