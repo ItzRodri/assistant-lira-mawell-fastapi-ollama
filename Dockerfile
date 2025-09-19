@@ -11,11 +11,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY data/ ./data/
 COPY mawell_assistant.db ./
-COPY start-light.sh ./
+COPY start-simple.sh ./
 
 # Environment and permissions
 ENV PYTHONPATH=/app PYTHONUNBUFFERED=1
-RUN chmod +x start-light.sh
+RUN chmod +x start-simple.sh
 
 # Start the app
-CMD ["./start-light.sh"]
+CMD ["./start-simple.sh"]

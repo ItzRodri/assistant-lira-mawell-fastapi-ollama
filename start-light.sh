@@ -17,6 +17,8 @@ fi
 # Note: Ollama will be used via external API
 echo "🤖 Using external Ollama API for AI processing..."
 
-# Start FastAPI
+# Start FastAPI with proper port handling
 echo "🌐 Starting FastAPI server..."
+PORT=${PORT:-8000}
+echo "Using port: $PORT"
 exec uvicorn app.main:app --host 0.0.0.0 --port $PORT
