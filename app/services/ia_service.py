@@ -140,7 +140,7 @@ def ask_mistral_with_context(query: str) -> dict:
             "Hola, soy el asistente virtual de Mawell. "
             "No encontré información específica sobre tu consulta en los documentos disponibles. "
             "¿Podrías ser más específico sobre qué información de Mawell necesitas? "
-            "Tengo acceso a información sobre carreras, reglamentos académicos y becas."
+            "Tengo acceso a información sobre Mawell"
         )
         return {
             "question": query,
