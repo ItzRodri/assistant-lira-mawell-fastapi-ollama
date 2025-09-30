@@ -18,7 +18,7 @@ engine = create_engine(
     DATABASE_URL, 
     connect_args={
         "check_same_thread": False,
-        "timeout": 20
+        "timeout": 100
     },
     pool_pre_ping=True,
     echo=False  # Set to True for debugging
