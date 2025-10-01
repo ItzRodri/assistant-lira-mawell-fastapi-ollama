@@ -21,12 +21,15 @@ FALLBACK_MODE = os.getenv("FALLBACK_MODE", "true").lower() == "true"
 MODEL = None
 try:
     from sentence_transformers import SentenceTransformer
+    print(f"🔄 Loading embedding model '{EMBEDDING_MODEL_NAME}'...")
     MODEL = SentenceTransformer(EMBEDDING_MODEL_NAME)
     print(f"✅ Embedding model '{EMBEDDING_MODEL_NAME}' loaded successfully")
-except ImportError:
-    print("⚠️  sentence-transformers not available. Using fallback mode.")
+except ImportError as e:
+    print(f"⚠️  sentence-transformers not available: {e}")
+    print("⚠️  Using fallback mode.")
 except Exception as e:
     print(f"❌ Error loading embedding model: {e}")
+    print("⚠️  Using fallback mode.")
     MODEL = None
 
 # Distance threshold: umbral más estricto para evitar respuestas irrelevantes
