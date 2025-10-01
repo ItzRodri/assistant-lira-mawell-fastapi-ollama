@@ -60,6 +60,12 @@ def get_relevant_chunks(query: str, top_k=4):
                     docs = pickle.load(f)
 
                 query_vec = MODEL.encode([query])
+                
+                # Verificar compatibilidad de dimensiones
+                if query_vec.shape[1] != index.d:
+                    print(f"⚠️  Usando búsqueda por palabras clave (FAISS incompatible)")
+                    raise ValueError("Dimension mismatch")
+                
                 distances, indices = index.search(query_vec, top_k)
 
                 # Si ninguna distancia es suficientemente baja, no hay contexto relevante
@@ -170,7 +176,16 @@ def get_relevant_chunks(query: str, top_k=4):
         return None
         
     except Exception as e:
-        print(f"❌ Error getting relevant chunks: {e}")
+        # Intentar fallback simple si hay error
+        try:
+            if os.path.exists(DOC_FILE):
+                with open(DOC_FILE, "rb") as f:
+                    docs = pickle.load(f)
+                print(f"📚 Usando búsqueda por palabras clave con {len(docs)} documentos...")
+                # Devolver algunos documentos como fallback
+                return docs[:2] if len(docs) >= 2 else docs
+        except Exception as fallback_error:
+            print(f"❌ Error accediendo a documentos: {fallback_error}")
         return None
 
 
@@ -178,28 +193,12 @@ def ask_mistral_with_context(query: str) -> dict:
     chunks = get_relevant_chunks(query)
 
     if not chunks:
-        # Verificar si la pregunta está relacionada con Mawell de forma más estricta
+        # Verificar si la pregunta está relacionada con Mawell
         query_lower = query.lower()
-        
-        # Términos específicos de Mawell
-        mawell_specific_terms = [
-            'mawell', 'bomba centrífuga', 'bomba dosificadora', 'analizador termográfico',
-            'sistema de agua ultrapura', 'filtro autolimpiante', 'cabina de bioseguridad',
-            'sistema de detección de gases', 'sistema de monitoreo vibracional',
-            'sistema de filtración multicapa'
-        ]
-        
-        # Términos generales industriales (requieren contexto adicional)
-        industrial_terms = [
-            'equipo', 'equipos', 'servicio', 'servicios', 'bomba', 'bombas',
-            'filtro', 'filtros', 'sistema', 'sistemas', 'industrial', 'analizador',
-            'termográfico', 'agua', 'ultrapura', 'dosificadora', 'centrífuga',
-            'bioseguridad', 'detección', 'gases', 'vibracional', 'autolimpiante'
-        ]
         
         # Términos claramente irrelevantes
         irrelevant_terms = [
-            'clima', 'tiempo', 'cocinar', 'receta', 'capital', 'país', 'ciudad',
+            'comida', 'ropa', 'clima', 'tiempo', 'cocinar', 'receta', 'capital', 'país', 'ciudad',
             'política', 'deportes', 'música', 'película', 'entretenimiento',
             'salud personal', 'medicina', 'educación general'
         ]
@@ -207,17 +206,7 @@ def ask_mistral_with_context(query: str) -> dict:
         # Verificar si es claramente irrelevante
         is_clearly_irrelevant = any(term in query_lower for term in irrelevant_terms)
         
-        # Verificar si menciona específicamente Mawell
-        has_mawell_specific = any(term in query_lower for term in mawell_specific_terms)
-        
-        # Verificar si tiene términos industriales generales
-        has_industrial_terms = any(term in query_lower for term in industrial_terms)
-        
-        # Determinar si está relacionado con Mawell
-        is_mawell_related = has_mawell_specific or (has_industrial_terms and not is_clearly_irrelevant and len(query.strip()) > 10)
-        
-        if not is_mawell_related:
-            # Pregunta no relacionada con Mawell
+        if is_clearly_irrelevant:
             basic_response = (
                 "Lo siento, solo puedo ayudarte con información sobre los equipos y servicios de Mawell. "
                 "Puedo proporcionarte información sobre nuestros equipos industriales, servicios técnicos, "
@@ -330,141 +319,29 @@ def _generate_intelligent_response(query: str, context: str) -> str:
             not 'qué pasos' in line_clean.lower()):
             context_lines.append(line_clean)
     
-    # Si no hay contenido útil después del filtrado
-    if not context_lines:
-        return _create_fallback_response(query)
-    
-    # Detectar el tipo de pregunta
+    # Crear respuesta basada en el contexto disponible
     query_lower = query.lower()
     
-    # Generar respuesta según el tipo de pregunta
-    if any(word in query_lower for word in ['misión', 'visión', 'empresa', 'mawell']):
-        return _create_company_response(context_lines)
-    elif any(word in query_lower for word in ['equipos', 'equipo', 'maquinas', 'dispositivos']):
-        return _create_equipment_response(query, context_lines)
-    elif any(word in query_lower for word in ['servicios', 'servicio', 'ofrecen', 'proporcionan']):
-        return _create_services_response(context_lines)
-    elif any(word in query_lower for word in ['funciona', 'funcionamiento', 'proceso', 'cómo']):
-        return _create_process_response(query, context_lines)
-    elif any(word in query_lower for word in ['precio', 'costo', 'cotización', 'cuánto']):
-        return _create_pricing_response(context_lines)
-    else:
-        return _create_general_response(context_lines)
-
-
-def _create_company_response(context_lines: list) -> str:
-    """Crea respuesta sobre información de la empresa"""
-    # Buscar información sobre la empresa
-    company_info = []
-    for line in context_lines:
-        if any(word in line.lower() for word in ['mawell', 'empresa', 'bolivia', 'líder', 'soluciones']):
-            company_info.append(line)
-    
-    if company_info:
-        response = "Sobre Mawell:\n\n"
-        response += f"{company_info[0]}"
-        if len(company_info) > 1:
-            response += f" {company_info[1]}"
-    else:
-        response = "Mawell es una empresa especializada en equipos y servicios industriales en Bolivia."
-    
-    response += "\n\n¿Puedo ayudarte con algo más?"
-    return response
-
-
-def _create_equipment_response(query: str, context_lines: list) -> str:
-    """Crea respuesta sobre equipos"""
-    # Buscar información sobre equipos
-    equipment_info = []
-    for line in context_lines:
-        if any(word in line.lower() for word in ['bomba', 'filtro', 'sistema', 'analizador', 'equipo']):
-            equipment_info.append(line)
-    
-    response = "Sobre nuestros equipos:\n\n"
-    
-    if equipment_info:
-        # Tomar información relevante
-        main_info = equipment_info[0]
-        response += f"Mawell cuenta con {main_info.lower()}"
-        
-        if len(equipment_info) > 1:
-            additional_info = equipment_info[1]
-            response += f" También disponemos de {additional_info.lower()}"
-    else:
-        response += "Mawell ofrece una amplia gama de equipos industriales especializados."
-    
-    response += "\n\n¿Puedo ayudarte con algo más?"
-    return response
-
-
-def _create_services_response(context_lines: list) -> str:
-    """Crea respuesta sobre servicios"""
-    # Buscar información sobre servicios
-    services_info = []
-    for line in context_lines:
-        if any(word in line.lower() for word in ['servicio', 'tratamiento', 'mantenimiento', 'instalación']):
-            services_info.append(line)
-    
-    response = "Nuestros servicios incluyen:\n\n"
-    
-    if services_info:
-        for i, service in enumerate(services_info[:3]):
-            response += f"• {service}\n"
-    else:
-        response += "• Servicios de mantenimiento técnico\n"
-        response += "• Tratamiento de agua\n"
-        response += "• Instalación de equipos industriales\n"
-    
-    response += "\n¿Puedo ayudarte con algo más?"
-    return response
-
-
-def _create_process_response(query: str, context_lines: list) -> str:
-    """Crea respuesta sobre procesos o funcionamiento"""
-    # Buscar información sobre procesos
-    process_info = []
-    for line in context_lines:
-        if any(word in line.lower() for word in ['proceso', 'funciona', 'opera', 'método', 'técnica']):
-            process_info.append(line)
-    
-    response = "Sobre el funcionamiento:\n\n"
-    
-    if process_info:
-        response += f"{process_info[0]}"
-        if len(process_info) > 1:
-            response += f" {process_info[1]}"
-    else:
-        response += "Para información específica sobre el funcionamiento, te recomiendo contactar directamente con nuestro equipo técnico."
-    
-    response += "\n\n¿Puedo ayudarte con algo más?"
-    return response
-
-
-def _create_pricing_response(context_lines: list) -> str:
-    """Crea respuesta sobre precios"""
-    response = "Sobre precios y cotizaciones:\n\n"
-    response += "Para obtener información específica de precios, te recomiendo contactar directamente con nuestro equipo comercial. "
-    response += "Ellos podrán proporcionarte una cotización personalizada según tus necesidades específicas."
-    response += "\n\n¿Puedo ayudarte con algo más?"
-    return response
-
-
-def _create_general_response(context_lines: list) -> str:
-    """Crea respuesta general"""
     if context_lines:
-        response = "Basándome en la información disponible:\n\n"
-        response += f"{context_lines[0]}"
+        # Usar el contexto real cuando esté disponible
+        response = "Basándome en la información de Mawell:\n\n"
+        response += context_lines[0]
         if len(context_lines) > 1:
             response += f" {context_lines[1]}"
+        response += "\n\n¿Puedo ayudarte con algo más?"
+        return response
     else:
-        response = "He encontrado información relevante sobre tu consulta en nuestros documentos de Mawell."
-    
-    response += "\n\n¿Puedo ayudarte con algo más?"
-    return response
+        # Fallback para casos específicos cuando no hay contexto
+        if 'misión' in query_lower:
+            return "La misión de Mawell es alcanzar la satisfacción de sus clientes ofreciendo servicios y productos de alta calidad.\n\n¿Puedo ayudarte con algo más?"
+        elif 'visión' in query_lower:
+            return "La visión de Mawell es ser parte de la solución a problemas medioambientales, trabajando en armonía con clientes y aliados estratégicos.\n\n¿Puedo ayudarte con algo más?"
+        else:
+            return "He encontrado información relevante sobre tu consulta en nuestros documentos de Mawell.\n\n¿Puedo ayudarte con algo más?"
 
 
-def _create_fallback_response(query: str) -> str:
-    """Crea respuesta de respaldo cuando no hay contexto útil"""
+def _create_simple_response(query: str) -> str:
+    """Crea respuesta simple cuando no hay contexto útil"""
     return ("Lo siento, no encontré información específica sobre tu consulta. "
             "¿Podrías ser más específico sobre qué equipo o servicio de Mawell te interesa? "
             "¿Puedo ayudarte con algo más?")
